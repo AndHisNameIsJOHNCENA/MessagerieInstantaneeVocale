@@ -1,0 +1,278 @@
+<html>
+	<head>
+		<title>Litromètre - Spectator</title>
+		<style>
+			body, html {
+				font-family: monospace;
+			}
+
+			#wait, #scoreboard {
+				display: none;
+				width: 100%;
+				height: 80%;
+			}
+
+			#wait {
+				display: block;
+			}
+
+			.faction {
+				display: inline-block;
+				width: 20%;
+				margin: 0 2.5%;
+			}
+
+			.faction .name, .faction .score {
+				height: 5%;
+				text-align: center;
+				font-size: 2em;
+			}
+
+			#title {
+				margin: auto;
+				padding: 0px;
+				width: 100%;
+				height: 10%;
+				text-align: center;
+				font-size: 3em;
+				color: white;
+				-webkit-text-stroke-width: 2px;
+				-webkit-text-stroke-color: #000;
+			}
+
+			#alpha-bar {
+				background: #5f7;
+				background-size: 100% auto;
+			}
+			#beta-bar {
+				background: #ff6;
+				background-size: 100% auto;
+			}
+			#gamma-bar {
+				background: #58f;
+				background-size: 100% auto;
+			}
+			#delta-bar {
+				background: #f55;
+				background-size: 100% auto;
+			}
+
+			#operations {
+				width: 100%;
+				height: 10%;
+				font-size: 1.5em;
+				padding-left: 10%;
+				/* text-align: center; */
+			}
+		</style>
+	</head>
+	<body>
+		<h1 id='title'>Quelle faction boit le plus ?</h1>
+		<div id='wait'>
+			En attente de connexion à travers la WebSocket...
+		</div>
+		<div id='scoreboard'>
+			<div id='aplha' class='faction'>
+				<div id='alpha-blank' class='blank'></div>
+				<div id='alpha-score' class='score'></div>
+				<div id='alpha-bar' class='bar'></div>
+				<div class='name'>Alpha</div>
+			</div><div id='beta' class='faction'>
+				<div id='beta-blank' class='blank'></div>
+				<div id='beta-score' class='score'></div>
+				<div id='beta-bar' class='bar'></div>
+				<div class='name'>Beta</div>
+			</div><div id='gamma' class='faction'>
+				<div id='gamma-blank' class='blank'></div>
+				<div id='gamma-score' class='score'></div>
+				<div id='gamma-bar' class='bar'></div>
+				<div class='name'>Gamma</div>
+			</div><div id='delta' class='faction'>
+				<div id='delta-blank' class='blank'></div>
+				<div id='delta-score' class='score'></div>
+				<div id='delta-bar' class='bar'></div>
+				<div class='name'>Delta</div>
+			</div>
+		</div>
+		<div id='operations'></div>
+		<script>
+			var wait = document.getElementById('wait');
+			var scoreboard = document.getElementById('scoreboard');
+
+			var scores = {
+				alpha: 0,
+				beta: 0,
+				gamma: 0,
+				delta: 0
+			};
+			var lastOperations = [];
+
+			var socket = new WebSocket('ws://' + window.location.hostname + ':8080');
+			socket.onopen = function() {
+				wait.style.display = 'none';
+				scoreboard.style.display = 'block';
+
+				var message = {
+					type: 'spectator'
+				};
+				socket.send(JSON.stringify(message));
+			};
+			socket.onmessage = function(message) {
+				message = JSON.parse(message.data);
+				switch(message.type) {
+					case 'scores' :
+						setScores(message.scores);
+						break;
+					case 'operation' :
+						updateScores(message.operation);
+						break;
+				}
+			}
+
+
+			function setScores(newScores) {
+				scores.alpha = newScores.alpha;
+				scores.beta = newScores.beta;
+				scores.gamma = newScores.gamma;
+				scores.delta = newScores.delta;
+				updateGraph();
+			};
+
+			function updateScores(operation) {
+				// Update latest operations
+				lastOperations.push(operation.server + ' sert ' + operation.kind + ' aux ' + operation.faction + '.');
+				if(lastOperations.length > 4)
+					lastOperations.shift();
+				document.getElementById('operations').innerHTML = '';
+				for(var k = 0; k < lastOperations.length -1; k++) {
+					document.getElementById('operations').innerHTML += lastOperations[k] + '<br/>';
+				}
+				document.getElementById('operations').innerHTML += lastOperations[lastOperations.length - 1];
+
+				// Update scores
+				scores[operation.faction] += operation.quantity;
+				
+				// Update graph
+				updateGraph();
+			};
+
+			function updateGraph() {
+				var max = Math.max(scores.alpha, scores.beta, scores.gamma, scores.delta);
+
+				if(max === 0) {
+					document.getElementById('alpha-score').innerHTML = '0 L';
+					document.getElementById('beta-score').innerHTML = '0 L';
+					document.getElementById('gamma-score').innerHTML = '0 L';
+					document.getElementById('delta-score').innerHTML = '0 L';
+					document.getElementById('alpha-blank').style.height = '89%';
+					document.getElementById('beta-blank').style.height = '89%';
+					document.getElementById('gamma-blank').style.height = '89%';
+					document.getElementById('delta-blank').style.height = '89%';
+					document.getElementById('alpha-bar').style.height = '1%';
+					document.getElementById('beta-bar').style.height = '1%';
+					document.getElementById('gamma-bar').style.height = '1%';
+					document.getElementById('delta-bar').style.height = '1%';
+					document.getElementById('alpha-bar').style.background = '#5f7';
+					document.getElementById('beta-bar').style.background = '#ff6';
+					document.getElementById('gamma-bar').style.background = '#58f';
+					document.getElementById('delta-bar').style.background = '#f55';
+				}
+				else {
+					document.getElementById('alpha-score').innerHTML = scores.alpha + ' L';
+					document.getElementById('beta-score').innerHTML = scores.beta + ' L';
+					document.getElementById('gamma-score').innerHTML = scores.gamma + ' L';
+					document.getElementById('delta-score').innerHTML = scores.delta + ' L';
+					document.getElementById('alpha-blank').style.height = Math.min(89, (1 - scores.alpha / max) * 80) + '%';
+					document.getElementById('beta-blank').style.height = Math.min(89, (1 - scores.beta / max) * 80) + '%';
+					document.getElementById('gamma-blank').style.height = Math.min(89, (1 - scores.gamma / max) * 80) + '%';
+					document.getElementById('delta-blank').style.height = Math.min(89, (1 - scores.delta / max) * 80) + '%';
+					document.getElementById('alpha-bar').style.height = Math.max(1, scores.alpha / max * 80) + '%';
+					document.getElementById('beta-bar').style.height = Math.max(1, scores.beta / max * 80) + '%';
+					document.getElementById('gamma-bar').style.height = Math.max(1, scores.gamma / max * 80) + '%';
+					document.getElementById('delta-bar').style.height = Math.max(1, scores.delta / max * 80) + '%';
+
+					// Ordoner
+					var ordered = [];
+					var alphaUsed = false,
+						betaUsed = false,
+						gammaUsed = false,
+						deltaUsed = false;
+					for(var k = 0; k < 4; k++) {
+						var max = -1;
+						var elt;
+						if(max < scores.alpha && !alphaUsed) {
+							elt = 'alpha';
+							max = scores.alpha;
+						}
+						if(max < scores.beta && !betaUsed) {
+							elt = 'beta';
+							max = scores.beta;
+						}
+						if(max < scores.gamma && !gammaUsed) {
+							elt = 'gamma';
+							max = scores.gamma;
+						}
+						if(max < scores.delta && !deltaUsed) {
+							elt = 'delta';
+							max = scores.delta;
+						}
+
+						if(elt == 'alpha') {
+							alphaUsed = true;
+							ordered.push({faction: 'alpha', score: scores.alpha, color: '#5f7', n: 0});
+						}
+						else if(elt == 'beta') {
+							betaUsed = true;
+							ordered.push({faction: 'beta', score: scores.beta, color: '#ff6', n: 1});
+						}
+						else if(elt == 'gamma') {
+							gammaUsed = true;
+							ordered.push({faction: 'gamma', score: scores.gamma, color: '#58f', n: 2});
+						}
+						else {
+							deltaUsed = true;
+							ordered.push({faction: 'delta', score: scores.delta, color: '#f55', n: 3});
+						}
+					}
+
+					if(ordered[0].score > ordered[1].score) {
+						document.getElementById(ordered[0].faction + '-bar').style.backgroundImage = 'url("usa.png")';
+						document.getElementById(ordered[0].faction + '-bar').style.backgroundSize = '100% auto';
+						if(ordered[1].score > ordered[2].score) {
+							// Un vrai premier + un vrai deuxième
+							document.getElementById(ordered[1].faction + '-bar').style.backgroundImage = 'url("urss.png")';
+							document.getElementById(ordered[1].faction + '-bar').style.backgroundSize = '100% auto';
+
+						}
+						else {
+							// Un vrai premier
+							document.getElementById(ordered[1].faction + '-bar').style.background = ordered[1].color;
+						}
+					}
+					else if(ordered[1].score > ordered[2].score) {
+						// Deux premiers
+						if(ordered[0].n < ordered[1].n) {
+							document.getElementById(ordered[0].faction + '-bar').style.backgroundImage = 'url("left.png")';
+							document.getElementById(ordered[0].faction + '-bar').style.backgroundSize = '100% auto';
+							document.getElementById(ordered[1].faction + '-bar').style.backgroundImage = 'url("right.png")';
+							document.getElementById(ordered[1].faction + '-bar').style.backgroundSize = '100% auto';
+						}
+						else {
+							document.getElementById(ordered[0].faction + '-bar').style.backgroundImage = 'url("right.png")';
+							document.getElementById(ordered[0].faction + '-bar').style.backgroundSize = '100% auto';
+							document.getElementById(ordered[1].faction + '-bar').style.backgroundImage = 'url("left.png")';
+							document.getElementById(ordered[1].faction + '-bar').style.backgroundSize = '100% auto';
+						}
+					}
+					else {
+						// Trop de premiers
+						document.getElementById(ordered[0].faction + '-bar').style.background = ordered[0].color;
+						document.getElementById(ordered[1].faction + '-bar').style.background = ordered[1].color;
+					}
+					document.getElementById(ordered[2].faction + '-bar').style.background = ordered[2].color;
+					document.getElementById(ordered[3].faction + '-bar').style.background = ordered[3].color;
+				}
+			};
+		</script>
+	</body>
+</html>

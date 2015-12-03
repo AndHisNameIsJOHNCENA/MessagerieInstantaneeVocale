@@ -1,0 +1,121 @@
+<html>
+	<head>
+		<title>Litromètre - Server</title>
+		<style>
+
+			#wait, #faction, #kind {
+				display: none;
+				position: absolute;
+				top: 0px;
+				left: 0px;
+				width: 100%;
+				height: 100%;
+			}
+			#wait {
+				display: block;
+			}
+			.button {
+				display: inline;
+				width: 50%;
+				margin: 0px;
+				border: 1px solid #666;
+				padding: 0px;
+			}
+			.fifty {
+				height: 50%;
+			}
+			.forty {
+				height: 40%;
+			}
+			.twenty {
+				width: 100%;
+				height: 20%;
+			}
+			button {
+				font-size: 8em;
+				font-family: monospace;
+			}
+			#alpha:hover, #beta:hover, #gamma:hover, #delta:hover,
+			#demi:hover, #pinte:hover, #pichet:hover, #metre:hover,
+			#cancel:hover {
+				background: #000;
+				color: #fff;
+			}
+			#alpha {
+				background: #5f7;
+			}
+			#beta {
+				background: #ff6;
+			}
+			#gamma {
+				background: #58f;
+			}
+			#delta {
+				background: #f55;
+			}
+			#demi {
+				background: #ff6;
+			}
+			#pinte {
+				background: #fc6;
+			}
+			#pichet {
+				background: #f96;
+			}
+			#metre {
+				background: #f66;
+			}
+			#cancel {
+				background: #fff;
+			}
+		</style>
+	</head>
+	<body>
+		<div id='wait'>
+			En attente de connexion à travers la WebSocket...
+		</div>
+		<div id='faction'>
+			<button id='alpha' class='button fifty tl' onclick='selectFaction("alpha")'>&alpha;</button><button id='beta' class='button fifty tr' onclick='selectFaction("beta")'>&beta;</button><button id='gamma' class='button fifty bl' onclick='selectFaction("gamma")'>&gamma;</button><button id='delta' class='button fifty br' onclick='selectFaction("delta")'>&delta;</button>
+		</div>
+		<div id='kind'>
+			<button id='demi' class='button forty tl' onclick='selectKind("un demi", 0.25)'>Demi</button><button id='pinte' class='button forty tr' onclick='selectKind("une pinte", 0.5)'>Pinte</button><button id='pichet' class='button forty bl' onclick='selectKind("un pichet", 1.25)'>Pichet</button><button id='metre' class='button forty br' onclick='selectKind("un mètre", 3.75)'>Mètre</button><button id='cancel' class='button twenty' onclick='cancel()'>Annuler</button>
+		</div>
+		<script>
+			var wait = document.getElementById('wait');
+			var faction = document.getElementById('faction');
+			var kind = document.getElementById('kind');
+
+			var socket = new WebSocket('ws://' + window.location.hostname + ':8080');
+			socket.onopen = function() {
+				wait.style.display = 'none';
+				faction.style.display = 'block';
+			};
+
+
+			var message = {
+				type: 'serve',
+				server: "<%= name %>"
+			};
+
+			function selectFaction(selectedFaction) {
+				message.faction = selectedFaction;
+
+				faction.style.display = 'none';
+				kind.style.display = 'block';
+			};
+			function selectKind(selectedKind, selectedQuantity) {
+				message.kind = selectedKind;
+				message.quantity = selectedQuantity;
+
+				socket.send(JSON.stringify(message));
+
+				kind.style.display = 'none';
+				faction.style.display = 'block';
+			};
+			function cancel() {
+				kind.style.display = 'none';
+				faction.style.display = 'block';
+			};
+		</script>
+	</body>
+</html>
