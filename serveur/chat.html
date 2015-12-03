@@ -3,11 +3,16 @@
     <head>
         <meta charset="utf-8"/>
         <title>Messagerie</title>
+        <link href="chat.css" rel="stylesheet" type="text/css"/>
     </head>
     <body>
-            <label>Saisir du texte</label>
-            <input type="text"/>
-            <button id="send-chat">send</button>
-            <div id="chat"></div>
+        <div id="chat"></div>
+        <div id="sending-msg">
+            <form method="post">
+                <label>Saisir du texte</label>
+                <input type="text" id="msg-field"/>
+                <button id="send-chat" type="submit">send</button>
+            </form>
+        </div>
     </body>
 </html>
